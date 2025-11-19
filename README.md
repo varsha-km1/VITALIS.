@@ -45,11 +45,13 @@
 ![AI Diagnostics](docs/screenshots/ai-diagnostics.png)
 *Real-time AI analysis with vital signs monitoring and predictive insights*
 
+<!-- 
 ---
 
 ### 📊 **Live Intelligence Stream**
 ![AI Insights](docs/screenshots/ai-insights-stream.png)
 *Continuous neural network analysis with critical alert management*
+-->
 
 </div>
 
