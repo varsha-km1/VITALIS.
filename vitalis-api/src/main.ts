@@ -9,54 +9,40 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const logger = new Logger('VitalisBootstrap');
 
-  // Security Headers
+  // 1. Security Middleware
   app.use(helmet());
   
-  // Cookie Parser (Required for HttpOnly refresh tokens)
+  // 2. Cookie Parser (CRITICAL: Required to read the HttpOnly Refresh Token)
   app.use(cookieParser());
 
-  // CORS Configuration with Credentials Support
+  // 3. CORS Configuration
+  // 'credentials: true' is mandatory for the frontend to send/receive cookies
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3001',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: true, // Required for cookies
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true, 
   });
 
-  // Global Validation Pipe
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
+  // 4. Global Validation Pipe
+  app.useGlobalPipes(new ValidationPipe({ 
+    whitelist: true, 
+    forbidNonWhitelisted: true,
+    transform: true 
+  }));
 
-  // Swagger API Documentation
+  // 5. Swagger / OpenAPI Documentation
   const config = new DocumentBuilder()
     .setTitle('Vitalis OS API')
-    .setDescription('HIPAA-Compliant Veterinary AI System with Multi-Tenant Architecture')
-    .setVersion('1.0.0')
+    .setDescription('HIPAA-Compliant Veterinary AI System')
+    .setVersion('1.0')
     .addBearerAuth()
-    .addTag('Authentication', 'JWT-based authentication with refresh tokens')
-    .addTag('Patients', 'Patient management with RBAC')
-    .addTag('AI Diagnostics', 'Async AI diagnostic processing')
-    .addTag('Audit Logs', 'HIPAA compliance audit trails')
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  const port = process.env.PORT || 3000;
+  // 6. Start Server
+  const port = process.env.PORT || 3001;
   await app.listen(port);
-  
-  logger.log('═══════════════════════════════════════════════════');
-  logger.log(`🚀 Vitalis OS API Operational on port ${port}`);
-  logger.log(`📚 API Docs: http://localhost:${port}/api/docs`);
-  logger.log(`🏥 HIPAA Compliance: ENABLED`);
-  logger.log(`⚡ Async Queues: ENABLED (Redis + BullMQ)`);
-  logger.log(`🔐 Rate Limiting: ENABLED (ThrottlerGuard)`);
-  logger.log('═══════════════════════════════════════════════════');
+  logger.log(`Vitalis System Operational on Port ${port}`);
 }
-
 bootstrap();
-
