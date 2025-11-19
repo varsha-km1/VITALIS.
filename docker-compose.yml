@@ -1,0 +1,98 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: vitalis-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vitalis
+      POSTGRES_PASSWORD: vitalis_secure
+      POSTGRES_DB: vitalis_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - vitalis-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vitalis -d vitalis_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    container_name: vitalis-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - vitalis-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: vitalis-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://vitalis:vitalis_secure@postgres:5432/vitalis_db?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: vitalis_2035_neural_secure_key_change_in_production
+      JWT_REFRESH_SECRET: vitalis_refresh_secret_change_in_production
+      FRONTEND_URL: http://localhost:3001
+      PORT: 3000
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - vitalis-network
+    # Using start.sh script which handles migrations, seeding, and startup
+    # command is defined in Dockerfile CMD
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: vitalis-web
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3000
+    ports:
+      - "3001:3001"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - vitalis-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  postgres_data:
+
+networks:
+  vitalis-network:
+    driver: bridge
+

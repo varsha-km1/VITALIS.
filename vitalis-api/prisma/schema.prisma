@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  VETERINARIAN
+  NURSE
+  TECHNICIAN
+}
+
+enum Severity {
+  LOW
+  MODERATE
+  CRITICAL
+  FATAL
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// Multi-Tenancy Root Model
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  subdomain String?  @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  users     User[]
+  patients  Patient[]
+  
+  @@index([subdomain])
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  password     String
+  fullName     String
+  role         Role     @default(VETERINARIAN)
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  firstName    String?
+  lastName     String?
+  refreshToken String?  // Hashed refresh token for session management
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  audits    AuditLog[]
+  
+  @@index([tenantId, email])
+  @@index([tenantId, role])
+}
+
+model Patient {
+  id              String             @id @default(uuid())
+  name            String
+  species         String
+  breed           String?
+  age             Int?
+  ownerId         String
+  ownerName       String
+  ownerContact    String
+  medicalHistory  String?
+  tenantId        String
+  tenant          Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  active          Boolean            @default(true)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  diagnosticReports DiagnosticReport[]
+  appointments    Appointment[]
+  
+  @@index([tenantId, species])
+  @@index([tenantId, createdAt])
+}
+
+model DiagnosticReport {
+  id          String   @id @default(uuid())
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  symptoms    String   @db.Text
+  rawInput    String   @db.Text
+  aiAnalysis  String   @db.Text
+  confidence  Float
+  severity    Severity
+  createdAt   DateTime @default(now())
+}
+
+model Appointment {
+  id          String            @id @default(uuid())
+  patientId   String
+  patient     Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  patientName String
+  vetId       String
+  vetName     String
+  dateTime    DateTime
+  reason      String
+  status      AppointmentStatus @default(SCHEDULED)
+  notes       String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  resource  String
+  details   String?  @db.Text
+  metadata  Json?    // Structured metadata for complex audit data (HIPAA compliance)
+  ipAddress String?
+  timestamp DateTime @default(now())
+  
+  @@index([userId, timestamp])
+  @@index([action, timestamp])
+}
+
