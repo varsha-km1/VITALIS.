@@ -85,17 +85,21 @@ export default function Dashboard() {
             </h1>
             <nav className="space-y-2 font-mono text-sm">
               {[
-                { name: 'Live Triage', active: false },
-                { name: 'Patients', active: true },
-                { name: 'AI Diagnostics', active: false },
-                { name: 'Genome Seq', active: false },
-                { name: 'Settings', active: false }
+                { name: 'Live Triage', active: false, route: '/triage' },
+                { name: 'Patients', active: true, route: '/dashboard' },
+                { name: 'AI Diagnostics', active: false, route: null },
+                { name: 'Genome Seq', active: false, route: null },
+                { name: 'Settings', active: false, route: null }
               ].map((item) => (
                 <button
                   key={item.name}
                   onClick={() => {
                     if (item.active) return;
-                    alert(`${item.name} - Coming soon! 🚀\n\nThis feature will be available in the next release.`);
+                    if (item.route) {
+                      router.push(item.route);
+                    } else {
+                      alert(`${item.name} - Coming soon! 🚀\n\nThis feature will be available in the next release.`);
+                    }
                   }}
                   className={`w-full text-left hover:text-cyan-400 transition-colors flex items-center gap-3 px-3 py-2.5 rounded ${
                     item.active ? 'text-cyan-400 bg-cyan-400/10 border border-cyan-400/20' : 'text-white/50 border border-transparent'
