@@ -235,7 +235,7 @@ graph TB
 
 ```bash
 # Clone the repository
-git clone https://github.com/jai-nayani/VITALIS..git
+git clone https://github.com/varsha-km1/VITALIS..git
 cd VITALIS.
 
 # Start all services (API + Frontend + PostgreSQL + Redis)
